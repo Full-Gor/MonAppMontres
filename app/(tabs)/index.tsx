@@ -1,4 +1,3 @@
-import { ResizeMode, Video } from 'expo-av';
 import React, { useEffect } from 'react';
 import {
   Animated,
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { FlipCard } from '../../components/FlipCard';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +44,13 @@ export default function HomeScreen() {
       })
     ]).start();
   }, []);
+
+  const nouveautesVideos = [
+    "https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4", // Vidéo 1
+    "https://videos.pexels.com/video-files/29280252/12629244_1080_1920_30fps.mp4",   // Vidéo 2
+    "https://videos.pexels.com/video-files/856199/pexels-engin-akyurt-856199.mp4",   // Vidéo 3
+    "https://videos.pexels.com/video-files/10728498/pexels-mikhail-nilov-10728498.mp4" // Vidéo 4
+  ];
 
   return (
     <ScrollView style={styles.container}>
@@ -81,22 +88,11 @@ export default function HomeScreen() {
           horizontal
           data={Object.values(mockWatches).flat().slice(0, 4)}
           renderItem={({ item }) => (
-            <View style={styles.featuredCard}>
-              {item.name === 'Révélation Classique' ? (
-                <Video
-                  source={{ uri: "https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4" }}
-                  style={styles.featuredImage}
-                  resizeMode={ResizeMode.COVER}
-                  isLooping
-                  isMuted
-                  shouldPlay
-                />
-              ) : (
-                <Image source={{ uri: item.image }} style={styles.featuredImage} />
-              )}
-              <Text style={styles.featuredName}>{item.name}</Text>
-              <Text style={styles.featuredPrice}>{item.price}€</Text>
-            </View>
+            <FlipCard
+              watch={item}
+              onAddToCart={() => { }}
+              onAddToFavorites={() => { }}
+            />
           )}
           keyExtractor={item => item.id.toString()}
           showsHorizontalScrollIndicator={false}

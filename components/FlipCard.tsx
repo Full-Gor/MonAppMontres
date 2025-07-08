@@ -1,15 +1,15 @@
-import React, { useState, useRef } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { ResizeMode, Video } from 'expo-av';
+import React, { useRef, useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
   Animated,
   Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +36,14 @@ export const FlipCard: React.FC<FlipCardProps> = ({ watch, onAddToCart, onAddToF
   const animatedValue = useRef(new Animated.Value(0)).current;
   const [isFlipped, setIsFlipped] = useState(false);
 
+  // Associer la bonne vidéo à chaque montre
+  let videoUrl = null;
+  if (watch.name === 'Révélation Classique') {
+    videoUrl = "https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4";
+  } else if (watch.name === 'Pulse Racing') {
+    videoUrl = "https://videos.pexels.com/video-files/29280252/12629244_1080_1920_30fps.mp4";
+  }
+
   const flipCard = () => {
     Animated.spring(animatedValue, {
       toValue: isFlipped ? 0 : 180,
@@ -59,27 +67,31 @@ export const FlipCard: React.FC<FlipCardProps> = ({ watch, onAddToCart, onAddToF
   return (
     <TouchableOpacity onPress={flipCard} style={styles.cardContainer}>
       <Animated.View style={[styles.card, { transform: [{ rotateY: frontInterpolate }] }]}>
-        <Video
-          source={{ uri: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4' }}
-          style={styles.cardVideo}
-          shouldPlay
-          isLooping
-          isMuted
-          resizeMode={ResizeMode.COVER}
-        />
+        {videoUrl ? (
+          <Video
+            source={{ uri: videoUrl }}
+            style={styles.cardVideo}
+            shouldPlay
+            isLooping
+            isMuted
+            resizeMode={ResizeMode.COVER}
+          />
+        ) : (
+          <Image source={{ uri: watch.image }} style={styles.cardVideo} />
+        )}
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>{watch.name}</Text>
           <Text style={styles.cardPrice}>{watch.price}€</Text>
         </View>
       </Animated.View>
-      
+
       <Animated.View style={[styles.card, styles.cardBack, { transform: [{ rotateY: backInterpolate }] }]}>
         <Text style={styles.cardBackTitle}>Spécifications</Text>
         <Text style={styles.spec}>Mécanisme: {watch.mechanism}</Text>
         <Text style={styles.spec}>Matériau: {watch.material}</Text>
         <Text style={styles.spec}>Étanchéité: {watch.waterResistance}</Text>
         {watch.limited && <Text style={styles.limited}>Édition limitée: {watch.limited}</Text>}
-        
+
         <View style={styles.cardButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={() => onAddToCart(watch)}>
             <MaterialIcons name="shopping-cart" size={20} color="#fff" />
