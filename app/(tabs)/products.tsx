@@ -1,41 +1,42 @@
-import React from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
-} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function ProductsScreen() {
   const router = useRouter();
-  
+
   const categories = [
-    { name: 'Classique', icon: 'watch', count: 2, color: '#1a1a1a' },
-    { name: 'Sport', icon: 'directions-run', count: 2, color: '#ff6b6b' },
-    { name: 'Luxe', icon: 'star', count: 2, color: '#d4af37' },
-    { name: 'Vintage', icon: 'access-time', count: 1, color: '#8b4513' },
-    { name: 'Édition Limitée', icon: 'local-offer', count: 1, color: '#4a148c' },
-    { name: 'Femme', icon: 'favorite', count: 1, color: '#e91e63' }
+    { name: 'Classique', icon: 'watch', count: 6, color: '#1a1a1a' },
+    { name: 'Sport', icon: 'directions-run', count: 6, color: '#ff6b6b' },
+    { name: 'Luxe', icon: 'star', count: 6, color: '#d4af37' },
+    { name: 'Vintage', icon: 'access-time', count: 6, color: '#8b4513' },
+    { name: 'Édition Limitée', icon: 'local-offer', count: 6, color: '#4a148c' },
+    { name: 'Femme', icon: 'favorite', count: 6, color: '#e91e63' }
   ];
+
+  const handleCategoryPress = (categoryName: string) => {
+    router.push(`/category/${categoryName.toLowerCase()}`);
+  };
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.pageTitle}>Nos Collections</Text>
       <View style={styles.categoriesGrid}>
         {categories.map((cat, index) => (
-          <TouchableOpacity 
-            key={index} 
+          <TouchableOpacity
+            key={index}
             style={[styles.categoryTile, { backgroundColor: cat.color }]}
-            onPress={() => {
-              // Navigation vers la catégorie
-              // router.push(`/category/${cat.name.toLowerCase()}`);
-            }}
+            onPress={() => handleCategoryPress(cat.name)}
           >
             <MaterialIcons name={cat.icon as any} size={50} color="#fff" />
             <Text style={styles.categoryTileTitle}>{cat.name}</Text>

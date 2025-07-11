@@ -9,10 +9,12 @@ import {
   TextInput,
   Alert,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
@@ -20,6 +22,7 @@ export default function ProfileScreen() {
   const [messageModalVisible, setMessageModalVisible] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -27,6 +30,7 @@ export default function ProfileScreen() {
     address: '',
     avatar: '',
   });
+  const router = useRouter();
 
   useEffect(() => {
     checkUser();
@@ -36,8 +40,8 @@ export default function ProfileScreen() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUser(user);
-      loadProfile(user.id);
-      loadMessages(user.id);
+      await loadProfile(user.id);
+      await loadMessages(user.id);
     }
   };
 
@@ -63,8 +67,8 @@ export default function ProfileScreen() {
     const { data, error } = await supabase
       .from('messages')
       .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .or(`user_id.eq.${userId},admin_id.eq.${userId}`)
+      .order('created_at', { ascending: true });
     
     if (data) {
       setMessages(data);
@@ -87,14 +91,18 @@ export default function ProfileScreen() {
   const handleSave = async () => {
     const { error } = await supabase
       .from('users')
-      .upsert({
-        id: user.id,
-        ...profileData,
-      });
+      .update({
+        name: profileData.name,
+        phone: profileData.phone,
+        address: profileData.address,
+        avatar: profileData.avatar,
+      })
+      .eq('id', user.id);
 
     if (!error) {
       Alert.alert('Succès', 'Profil mis à jour');
       setEditing(false);
+      await loadProfile(user.id);
     } else {
       Alert.alert('Erreur', 'Erreur lors de la mise à jour');
     }
@@ -109,18 +117,28 @@ export default function ProfileScreen() {
         user_id: user.id,
         content: newMessage,
         type: 'question',
+        created_at: new Date().toISOString(),
       }]);
 
     if (!error) {
-      Alert.alert('Succès', 'Message envoyé');
       setNewMessage('');
-      loadMessages(user.id);
+      await loadMessages(user.id);
+      Alert.alert('Succès', 'Message envoyé');
     }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
+    router.replace('/(tabs)/auth');
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (user) {
+      await loadProfile(user.id);
+      await loadMessages(user.id);
+    }
+    setRefreshing(false);
   };
 
   if (!user) {
@@ -128,7 +146,10 @@ export default function ProfileScreen() {
       <View style={styles.centerContainer}>
         <MaterialIcons name="account-circle" size={80} color="#ccc" />
         <Text style={styles.loginPrompt}>Veuillez vous connecter</Text>
-        <TouchableOpacity style={styles.loginButton}>
+        <TouchableOpacity 
+          style={styles.loginButton}
+          onPress={() => router.push('/(tabs)/auth')}
+        >
           <Text style={styles.loginButtonText}>Se connecter</Text>
         </TouchableOpacity>
       </View>
@@ -136,16 +157,23 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.profileHeader}>
-        <TouchableOpacity onPress={handleImagePicker}>
+        <TouchableOpacity onPress={handleImagePicker} disabled={!editing}>
           <Image 
             source={{ uri: profileData.avatar || 'https://via.placeholder.com/150' }} 
             style={styles.profileAvatar}
           />
-          <View style={styles.cameraIconContainer}>
-            <MaterialIcons name="camera-alt" size={24} color="#fff" />
-          </View>
+          {editing && (
+            <View style={styles.cameraIconContainer}>
+              <MaterialIcons name="camera-alt" size={24} color="#fff" />
+            </View>
+          )}
         </TouchableOpacity>
         <Text style={styles.profileName}>{profileData.name || 'Utilisateur'}</Text>
         <Text style={styles.profileEmail}>{profileData.email}</Text>
@@ -208,7 +236,7 @@ export default function ProfileScreen() {
         onPress={() => setMessageModalVisible(true)}
       >
         <MaterialIcons name="message" size={24} color="#fff" />
-        <Text style={styles.messageButtonText}>Contacter l'admin</Text>
+        <Text style={styles.messageButtonText}>Messages ({messages.length})</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -225,7 +253,7 @@ export default function ProfileScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Messages avec l'admin</Text>
+              <Text style={styles.modalTitle}>Messages</Text>
               <TouchableOpacity onPress={() => setMessageModalVisible(false)}>
                 <MaterialIcons name="close" size={24} color="#333" />
               </TouchableOpacity>
@@ -237,7 +265,7 @@ export default function ProfileScreen() {
                   key={msg.id} 
                   style={[
                     styles.messageItem,
-                    msg.type === 'reply' && styles.replyMessage
+                    msg.type === 'reply' ? styles.replyMessage : styles.userMessage
                   ]}
                 >
                   <Text style={styles.messageContent}>{msg.content}</Text>
@@ -442,12 +470,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   messageItem: {
-    backgroundColor: '#f0f0f0',
     padding: 15,
     borderRadius: 15,
     marginBottom: 10,
-    alignSelf: 'flex-start',
     maxWidth: '80%',
+  },
+  userMessage: {
+    backgroundColor: '#f0f0f0',
+    alignSelf: 'flex-start',
   },
   replyMessage: {
     backgroundColor: '#d4af37',

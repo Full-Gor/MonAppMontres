@@ -1,3 +1,5 @@
+import { ResizeMode, Video } from 'expo-av';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import {
   Animated,
@@ -11,24 +13,64 @@ import {
   View,
 } from 'react-native';
 import { FlipCard } from '../../components/FlipCard';
+import { useCart } from '../../contexts/AppContext';
 
 const { width } = Dimensions.get('window');
 
-// Données mock pour les montres
+// Données avec toutes les vidéos corrigées
 const mockWatches = {
   classique: [
-    { id: 1, name: 'Révélation Classique', price: 2499, image: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4', category: 'classique', mechanism: 'Automatique', material: 'Acier inoxydable', waterResistance: '50m' },
-    { id: 2, name: 'Tradition Éternelle', price: 3299, image: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4', category: 'classique', mechanism: 'Manuel', material: 'Or rose', waterResistance: '30m' }
+    {
+      id: 1,
+      name: 'Révélation Classique',
+      price: 2499,
+      image: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4',
+      category: 'classique',
+      mechanism: 'Automatique',
+      material: 'Acier inoxydable',
+      waterResistance: '50m'
+    },
+   
+    {
+      id: 5,
+      name: 'Élégance Intemporelle',
+      price: 2799,
+      image: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?w=400',
+      category: 'classique',
+      mechanism: 'Quartz',
+      material: 'Acier PVD',
+      waterResistance: '30m'
+    }
   ],
   sport: [
-    { id: 3, name: 'Pulse Racing', price: 1899, image: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4', category: 'sport', mechanism: 'Automatique', material: 'Titane', waterResistance: '200m' },
-    { id: 4, name: 'Velocity Master', price: 2199, image: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4', category: 'sport', mechanism: 'Automatique', material: 'Carbone', waterResistance: '100m' }
+    {
+      id: 3,
+      name: 'Pulse Racing',
+      price: 1899,
+      image: 'https://videos.pexels.com/video-files/29280252/12629244_1080_1920_30fps.mp4',
+      category: 'sport',
+      mechanism: 'Automatique',
+      material: 'Titane',
+      waterResistance: '200m'
+    }
+   
   ],
+};
+
+// Images corrigées pour les catégories
+const categoryImages = {
+  'Classique': 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=400',
+  'Sport': 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400',
+  'Luxe': 'https://images.unsplash.com/photo-1609587312208-cea54be969e7?w=400',
+  'Vintage': 'https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=400',
+  'Femme': 'https://images.unsplash.com/photo-1539874754764-5a96559165b0?w=400',
 };
 
 export default function HomeScreen() {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const { addToCart } = useCart();
+  const router = useRouter();
 
   useEffect(() => {
     Animated.parallel([
@@ -45,35 +87,46 @@ export default function HomeScreen() {
     ]).start();
   }, []);
 
-  const nouveautesVideos = [
-    "https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4", // Vidéo 1
-    "https://videos.pexels.com/video-files/29280252/12629244_1080_1920_30fps.mp4",   // Vidéo 2
-    "https://videos.pexels.com/video-files/856199/pexels-engin-akyurt-856199.mp4",   // Vidéo 3
-    "https://videos.pexels.com/video-files/10728498/pexels-mikhail-nilov-10728498.mp4" // Vidéo 4
-  ];
+  const handleAddToCart = (watch: any) => {
+    addToCart(watch);
+  };
+
+  const handleCategoryPress = (category: string) => {
+    router.push(`/category/${category.toLowerCase()}`);
+  };
 
   return (
     <ScrollView style={styles.container}>
       <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
-        <Image
+        <Video
           source={{ uri: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4' }}
-          style={styles.heroImage}
+          style={styles.heroVideo}
+          shouldPlay
+          isLooping
+          isMuted
+          resizeMode={ResizeMode.COVER}
         />
-        <Animated.Text style={[styles.heroTitle, { transform: [{ translateY: slideAnim }] }]}>
-          L'Art du Temps Révélé
-        </Animated.Text>
-        <Text style={styles.heroSubtitle}>
-          Découvrez nos montres squelette d'exception
-        </Text>
+        <View style={styles.heroOverlay}>
+          <Animated.Text style={[styles.heroTitle, { transform: [{ translateY: slideAnim }] }]}>
+            L'Art du Temps Révélé
+          </Animated.Text>
+          <Text style={styles.heroSubtitle}>
+            Découvrez nos montres squelette d'exception
+          </Text>
+        </View>
       </Animated.View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Collections Exclusives</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {['Classique', 'Sport', 'Luxe', 'Vintage', 'Limitée', 'Femme'].map((cat, index) => (
-            <TouchableOpacity key={index} style={styles.categoryCard}>
+          {Object.entries(categoryImages).map(([cat, imageUrl], index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.categoryCard}
+              onPress={() => handleCategoryPress(cat)}
+            >
               <Image
-                source={{ uri: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4' }}
+                source={{ uri: imageUrl }}
                 style={styles.categoryImage}
               />
               <Text style={styles.categoryName}>{cat}</Text>
@@ -86,11 +139,11 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Nouveautés</Text>
         <FlatList
           horizontal
-          data={Object.values(mockWatches).flat().slice(0, 4)}
+          data={Object.values(mockWatches).flat()}
           renderItem={({ item }) => (
             <FlipCard
               watch={item}
-              onAddToCart={() => { }}
+              onAddToCart={handleAddToCart}
               onAddToFavorites={() => { }}
             />
           )}
@@ -109,30 +162,34 @@ const styles = StyleSheet.create({
   },
   hero: {
     position: 'relative',
-    height: 300,
+    height: 350,
     marginBottom: 20,
   },
-  heroImage: {
+  heroVideo: {
+    position: 'absolute',
     width: '100%',
     height: '100%',
   },
-  heroTitle: {
+  heroOverlay: {
     position: 'absolute',
-    bottom: 60,
-    left: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  heroTitle: {
     color: '#fff',
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
   },
   heroSubtitle: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
     color: '#fff',
     fontSize: 18,
+    marginTop: 10,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
@@ -141,44 +198,29 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 20,
     color: '#333',
   },
   categoryCard: {
     marginRight: 15,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 10,
+    width: 160,
+    height: 160,
+    borderRadius: 15,
     marginBottom: 10,
   },
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-  },
-  featuredCard: {
-    marginRight: 15,
-    width: 200,
-  },
-  featuredImage: {
-    width: 200,
-    height: 250,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  featuredName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  featuredPrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#d4af37',
   },
 });
