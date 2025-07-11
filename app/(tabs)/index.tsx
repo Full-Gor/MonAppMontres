@@ -1,23 +1,30 @@
+// On importe Video pour lire des vidéos et ResizeMode pour gérer la taille
 import { ResizeMode, Video } from 'expo-av';
+// On importe useRouter pour changer de page
 import { useRouter } from 'expo-router';
+// On importe React et useEffect pour gérer l'affichage et les effets
 import React, { useEffect } from 'react';
+// On importe des outils pour l'affichage et l'animation
 import {
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+  Animated, // Pour faire des animations
+  Dimensions, // Pour connaître la taille de l'écran
+  FlatList, // Pour afficher une liste d'éléments
+  Image, // Pour afficher des images
+  ScrollView, // Pour faire défiler l'écran
+  StyleSheet, // Pour écrire le style
+  Text, // Pour afficher du texte
+  TouchableOpacity, // Pour rendre un élément cliquable
+  View, // Pour regrouper des éléments
 } from 'react-native';
+// On importe le composant FlipCard pour l'effet de carte retournée
 import { FlipCard } from '../../components/FlipCard';
+// On importe le hook useCart pour ajouter au panier
 import { useCart } from '../../contexts/AppContext';
 
+// On récupère la largeur de l'écran
 const { width } = Dimensions.get('window');
 
-// Données avec toutes les vidéos corrigées
+// On crée des fausses montres pour l'affichage (données de test)
 const mockWatches = {
   classique: [
     {
@@ -30,7 +37,6 @@ const mockWatches = {
       material: 'Acier inoxydable',
       waterResistance: '50m'
     },
-   
     {
       id: 5,
       name: 'Élégance Intemporelle',
@@ -53,11 +59,10 @@ const mockWatches = {
       material: 'Titane',
       waterResistance: '200m'
     }
-   
   ],
 };
 
-// Images corrigées pour les catégories
+// On met des images pour chaque catégorie
 const categoryImages = {
   'Classique': 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=400',
   'Sport': 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400',
@@ -66,12 +71,18 @@ const categoryImages = {
   'Femme': 'https://images.unsplash.com/photo-1539874754764-5a96559165b0?w=400',
 };
 
+// On crée le composant principal de la page d'accueil
 export default function HomeScreen() {
+  // On crée une animation pour faire apparaître le texte
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  // On crée une animation pour faire glisser le texte
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  // On récupère la fonction pour ajouter au panier
   const { addToCart } = useCart();
+  // On récupère la fonction pour changer de page
   const router = useRouter();
 
+  // Quand la page s'affiche, on lance les animations
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -87,16 +98,20 @@ export default function HomeScreen() {
     ]).start();
   }, []);
 
+  // Fonction pour ajouter une montre au panier
   const handleAddToCart = (watch: any) => {
     addToCart(watch);
   };
 
+  // Fonction pour aller à la page d'une catégorie
   const handleCategoryPress = (category: string) => {
     router.push(`/category/${category.toLowerCase()}`);
   };
 
+  // Ce que la page affiche
   return (
     <ScrollView style={styles.container}>
+      {/* Bloc vidéo en haut de la page */}
       <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
         <Video
           source={{ uri: 'https://videos.pexels.com/video-files/6827301/6827301-uhd_2560_1440_25fps.mp4' }}
@@ -116,6 +131,7 @@ export default function HomeScreen() {
         </View>
       </Animated.View>
 
+      {/* Bloc des catégories */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Collections Exclusives</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -135,6 +151,7 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
 
+      {/* Bloc des nouveautés */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Nouveautés</Text>
         <FlatList
@@ -155,6 +172,7 @@ export default function HomeScreen() {
   );
 }
 
+// On écrit le style de la page
 const styles = StyleSheet.create({
   container: {
     flex: 1,
