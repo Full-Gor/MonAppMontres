@@ -1,6 +1,7 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { supabase } from '../lib/supabase';
 
 interface CartItem {
   id: number;
@@ -23,6 +24,10 @@ interface AppContextType {
   favorites: any[];
   addToFavorites: (item: any) => Promise<void>;
   removeFavorite: (id: number) => Promise<void>;
+  isFavorite: (id: number) => boolean;
+  loadFavorites: () => Promise<void>;
+  user: any;
+  setUser: (user: any) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -30,11 +35,23 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadCart();
-    loadFavorites();
+    checkUser();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadFavorites();
+    }
+  }, [user]);
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user);
+  };
 
   const loadCart = async () => {
     try {
@@ -48,13 +65,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loadFavorites = async () => {
+    if (!user) {
+      // Si pas connecté, charger depuis AsyncStorage
+      try {
+        const savedFavorites = await AsyncStorage.getItem('favorites');
+        if (savedFavorites) {
+          setFavorites(JSON.parse(savedFavorites));
+        }
+      } catch (error) {
+        console.error('Error loading favorites from storage:', error);
+      }
+      return;
+    }
+
     try {
+      // Charger depuis Supabase si connecté
+      const { data: favoritesData, error } = await supabase
+        .from('favorites')
+        .select(`
+          id,
+          product_id,
+          created_at,
+          products (
+            id,
+            name,
+            price,
+            image,
+            category,
+            mechanism,
+            material,
+            waterResistance
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!error && favoritesData) {
+        const formattedFavorites = favoritesData.map(fav => ({
+          ...fav.products,
+          favorite_id: fav.id
+        }));
+        setFavorites(formattedFavorites);
+        
+        // Synchroniser avec AsyncStorage
+        await AsyncStorage.setItem('favorites', JSON.stringify(formattedFavorites));
+      }
+    } catch (error) {
+      console.error('Error loading favorites from Supabase:', error);
+      // Fallback vers AsyncStorage
       const savedFavorites = await AsyncStorage.getItem('favorites');
       if (savedFavorites) {
         setFavorites(JSON.parse(savedFavorites));
       }
-    } catch (error) {
-      console.error('Error loading favorites:', error);
     }
   };
 
@@ -66,7 +128,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const saveFavorites = async (newFavorites: any[]) => {
+  const saveFavoritesToStorage = async (newFavorites: any[]) => {
     try {
       await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
     } catch (error) {
@@ -74,7 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const addToCart = async (item: any) => {
+  const addToCart = async (item: any): Promise<void> => {
     return new Promise(async (resolve) => {
       const existingItem = cart.find(cartItem => cartItem.id === item.id);
       let newCart;
@@ -92,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCart(newCart);
       await saveCart(newCart);
       Alert.alert('✓', `${item.name} ajouté au panier`);
-      resolve();
+      resolve(undefined);
     });
   };
 
@@ -120,22 +182,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await AsyncStorage.removeItem('cart');
   };
 
+  const isFavorite = (id: number) => {
+    return favorites.some(fav => fav.id === id);
+  };
+
   const addToFavorites = async (item: any) => {
-    const exists = favorites.find(fav => fav.id === item.id);
-    if (!exists) {
+    if (isFavorite(item.id)) {
+      Alert.alert('Info', 'Déjà dans les favoris');
+      return;
+    }
+
+    if (!user) {
+      // Si pas connecté, sauvegarder localement
       const newFavorites = [...favorites, item];
       setFavorites(newFavorites);
-      await saveFavorites(newFavorites);
+      await saveFavoritesToStorage(newFavorites);
       Alert.alert('✓', `${item.name} ajouté aux favoris`);
-    } else {
-      Alert.alert('Info', 'Déjà dans les favoris');
+      return;
+    }
+
+    try {
+      // Ajouter à Supabase si connecté
+      const { data, error } = await supabase
+        .from('favorites')
+        .insert([{
+          user_id: user.id,
+          product_id: item.id,
+        }])
+        .select()
+        .single();
+
+      if (!error && data) {
+        const newFavorites = [...favorites, { ...item, favorite_id: data.id }];
+        setFavorites(newFavorites);
+        await saveFavoritesToStorage(newFavorites);
+        Alert.alert('✓', `${item.name} ajouté aux favoris`);
+      } else {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+      Alert.alert('Erreur', 'Impossible d\'ajouter aux favoris');
     }
   };
 
   const removeFavorite = async (id: number) => {
-    const newFavorites = favorites.filter(item => item.id !== id);
-    setFavorites(newFavorites);
-    await saveFavorites(newFavorites);
+    const favoriteItem = favorites.find(fav => fav.id === id);
+    
+    if (!user) {
+      // Si pas connecté, supprimer localement
+      const newFavorites = favorites.filter(item => item.id !== id);
+      setFavorites(newFavorites);
+      await saveFavoritesToStorage(newFavorites);
+      return;
+    }
+
+    try {
+      // Supprimer de Supabase si connecté
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('id', favoriteItem?.favorite_id);
+
+      if (!error) {
+        const newFavorites = favorites.filter(item => item.id !== id);
+        setFavorites(newFavorites);
+        await saveFavoritesToStorage(newFavorites);
+      } else {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+      Alert.alert('Erreur', 'Impossible de supprimer des favoris');
+    }
   };
 
   return (
@@ -147,7 +266,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearCart,
       favorites,
       addToFavorites,
-      removeFavorite
+      removeFavorite,
+      isFavorite,
+      loadFavorites,
+      user,
+      setUser
     }}>
       {children}
     </AppContext.Provider>
@@ -156,8 +279,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 export const useCart = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useCart must be used within AppProvider');
+  if (context === undefined) {
+    throw new Error('useCart must be used within an AppProvider');
   }
   return context;
 };

@@ -3,16 +3,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    Alert,
-    Image,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
@@ -269,22 +269,12 @@ export default function ProfileScreen() {
                   key={msg.id} 
                   style={[
                     styles.messageItem,
-                    msg.is_from_admin ? styles.adminMessage : styles.userMessage
+                    msg.type === 'reply' ? styles.replyMessage : styles.userMessage
                   ]}
                 >
-                  <View style={styles.messageHeader}>
-                    <Text style={styles.messageSender}>
-                      {msg.is_from_admin ? '👑 Admin' : 'Vous'}
-                    </Text>
-                    <Text style={styles.messageDate}>
-                      {new Date(msg.created_at).toLocaleString()}
-                    </Text>
-                  </View>
-                  <Text style={[
-                    styles.messageContent,
-                    msg.is_from_admin ? styles.adminMessageText : styles.userMessageText
-                  ]}>
-                    {msg.content}
+                  <Text style={styles.messageContent}>{msg.content}</Text>
+                  <Text style={styles.messageDate}>
+                    {new Date(msg.created_at).toLocaleString()}
                   </Text>
                 </View>
               ))}
@@ -493,12 +483,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     alignSelf: 'flex-start',
   },
+  replyMessage: {
+    backgroundColor: '#d4af37',
+    alignSelf: 'flex-end',
+  },
   messageContent: {
     fontSize: 16,
+    color: '#333',
   },
   messageDate: {
     fontSize: 12,
     color: '#666',
+    marginTop: 5,
   },
   messageInputContainer: {
     flexDirection: 'row',
@@ -523,25 +519,5 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  messageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  messageSender: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#555',
-  },
-  adminMessage: {
-    backgroundColor: '#d4af37',
-    alignSelf: 'flex-end',
-  },
-  userMessageText: {
-    color: '#333',
-  },
-  adminMessageText: {
-    color: '#fff',
   },
 });

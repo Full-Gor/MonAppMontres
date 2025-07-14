@@ -100,7 +100,7 @@ export default function CartScreen() {
     }
 
     // Vérifier si Stripe est configuré
-    if (false) { // Temporairement désactivé
+    if (checkStripeConfig()) {
       // Ouvrir le modal de paiement Stripe
       setPaymentModalVisible(true);
     } else {
@@ -245,9 +245,8 @@ export default function CartScreen() {
         </View>
       )}
       
-      {/* Modal de paiement Stripe - temporairement désactivé */}
-      {/* 
-      <Modal visible={paymentModalVisible} animationType="slide">
+      {/* Modal de paiement Stripe */}
+      {/* Modal de paiement Stripe */}
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <PaymentForm
@@ -258,7 +257,6 @@ export default function CartScreen() {
           </View>
         </View>
       </Modal>
-      */}
     </ScrollView>
   );
 }
