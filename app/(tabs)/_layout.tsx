@@ -101,17 +101,26 @@ export default function TabLayout() {
         />
       )}
 
-      {/* Onglet Auth/Profile - change selon l'état de connexion */}
+      {/* Onglet Auth - visible seulement si non connecté */}
       <Tabs.Screen
-        name={user ? "profile" : "auth"}
+        name="auth"
         options={{
-          title: user ? 'Profil' : 'Connexion',
+          title: 'Connexion',
+          href: user ? null : '/(tabs)/auth',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialIcons 
-              name={user ? "account-circle" : "login"} 
-              size={28} 
-              color={color} 
-            />
+            <MaterialIcons name="login" size={28} color={color} />
+          ),
+        }}
+      />
+
+      {/* Onglet Profile - visible seulement si connecté */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          href: user ? '/(tabs)/profile' : null,
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialIcons name="account-circle" size={28} color={color} />
           ),
         }}
       />
